@@ -1,0 +1,11 @@
+Produce a nix flake that includes the package mofaflex.
+
+Use `flake-utils.lib.eachSystem` to create a derivation for all platforms and use `pkgs.callPackage` idiom.
+
+The source code is available at 
+https://github.com/bioFAM/mofaflex
+
+The commit to use for the package
+ebeb258c05764fe3b732f22e028d60005b01871b
+
+The pyproject.toml file is checked out in the current folder for your reference.
