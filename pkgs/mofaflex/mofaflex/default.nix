@@ -2,6 +2,7 @@
   lib,
   python3Packages,
   fetchFromGitHub,
+  mudata,
 }:
 
 python3Packages.buildPythonPackage rec {

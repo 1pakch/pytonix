@@ -18,9 +18,10 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
-        packages = {
-          mofaflex = pkgs.callPackage ./default.nix { };
-          default = self.packages.${system}.mofaflex;
+        packages = rec {
+          mudata = pkgs.callPackage ./mudata { };
+          mofaflex = pkgs.callPackage ./mofaflex { inherit mudata; };
+          default = mofaflex;
         };
       }
     );
