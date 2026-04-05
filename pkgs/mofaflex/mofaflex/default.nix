@@ -7,18 +7,17 @@
 
 python3Packages.buildPythonPackage rec {
   pname = "mofaflex";
-  version = "0.1.0.post1-unstable-2025-03-26";
+  version = "0.1.0.post1";
   pyproject = true;
 
   # hatch-vcs needs git tags to determine version, but fetchFromGitHub has no .git
-  # Use latest PyPI version: https://pypi.org/project/mofaflex/
-  env.SETUPTOOLS_SCM_PRETEND_VERSION = "0.1.0.post1";
+  env.SETUPTOOLS_SCM_PRETEND_VERSION = version;
 
   src = fetchFromGitHub {
     owner = "bioFAM";
     repo = "mofaflex";
-    rev = "ebeb258c05764fe3b732f22e028d60005b01871b";
-    hash = "sha256-F3DD+nyB8ICGBCg7n9fI9ISaDlb5UYKYgMLHTDrMmLk=";
+    tag = "v0.1.0post1";
+    hash = "sha256-OsS5UbTI41a4905WF/79eezFhrZGHX8L2zldQ0gRRHY=";
   };
 
   build-system = with python3Packages; [
