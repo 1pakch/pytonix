@@ -7,14 +7,18 @@
 
 python3Packages.buildPythonPackage rec {
   pname = "mofaflex";
-  version = "0-unstable-2025-03-26";
+  version = "0.1.0.post1-unstable-2025-03-26";
   pyproject = true;
+
+  # hatch-vcs needs git tags to determine version, but fetchFromGitHub has no .git
+  # Use latest PyPI version: https://pypi.org/project/mofaflex/
+  env.SETUPTOOLS_SCM_PRETEND_VERSION = "0.1.0.post1";
 
   src = fetchFromGitHub {
     owner = "bioFAM";
     repo = "mofaflex";
     rev = "ebeb258c05764fe3b732f22e028d60005b01871b";
-    hash = lib.fakeHash;
+    hash = "sha256-F3DD+nyB8ICGBCg7n9fI9ISaDlb5UYKYgMLHTDrMmLk=";
   };
 
   build-system = with python3Packages; [
@@ -22,14 +26,15 @@ python3Packages.buildPythonPackage rec {
     hatch-vcs
   ];
 
-  dependencies = with python3Packages; [
+  dependencies = [
+    mudata
+  ] ++ (with python3Packages; [
     anndata
     array-api-compat
     dtw-python
     gpytorch
     h5py
     mizani
-    mudata
     numpy
     packaging
     pandas
@@ -42,7 +47,7 @@ python3Packages.buildPythonPackage rec {
     statsmodels
     torch
     tqdm
-  ];
+  ]);
 
   optional-dependencies = with python3Packages; {
     lazy = [ dask ];

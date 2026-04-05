@@ -11,7 +11,7 @@ python3Packages.buildPythonPackage rec {
 
   src = fetchPypi {
     inherit pname version;
-    hash = lib.fakeHash;
+    hash = "sha256-CsvXw8Zo/V/R4XwuM7yf0X3xLOpepC3JuJhq0QQZWl0=";
   };
 
   build-system = with python3Packages; [
