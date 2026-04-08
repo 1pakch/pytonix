@@ -1,0 +1,3 @@
+mkdir -p pypi
+curl https://pypi.org/pypi/mofaflex/json >pypi/mofaflex.json
+curl https://pypi.org/pypi/mudata/json >pypi/mudata.json

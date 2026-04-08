@@ -1,0 +1,415 @@
+I would like to have a pypi (Pythin) package called `mofaflex` available in nix flake. Please create a nix flake and package derivations for the `mofaflex` and its dependency `mudata` not available in nixpkgs itself.
+
+The output should be a JSON file with the following structure (the suggested structure of each file is explained below).
+
+```
+{
+  "files": [
+    { "flake.nix": "the literal content of the flake definition"
+    { "main/default.nix": "the literal contents of the derivation for `main` package"}, 
+    { "dep1/default.nix": "the literal contents of the derivation for `dep1`"}
+  ], 
+  "comments": [
+    "A messages explaining the decision you took or the reasoning process",
+    "Another message explaining the decision you took or the reasoning process"
+  ]
+}
+```
+
+In case the task seems out of reach and you are not sure about the solution (or if it is requires additional input in your view) please put the explanations in the last comment(s) as clear possible.
+
+The suggested structure of the `flake.nix` file:
+
+```
+{
+  description = "main - Factor Analysis Models";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+  };
+
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};       
+        coreScope = { inherit (pkgs) lib fetchFromGitHub; };
+        customPackages = let 
+	  pythonPackageScope = pkgs.python3.pkgs // customPackages // coreScope;
+          callPackageWith = pkgs.lib.callPackageWith;
+	in {
+          main = callPackageWith pythonPackageScope ./main {};
+          dep1 = callPackageWith pythonPackageScope ./dep1 {};
+	  # ...
+        };
+      in {
+        packages = customPackages // { 
+	  default = customPackages.main;
+	};
+      }
+    );
+}
+```
+
+The derivation definition for each package should be in a separate file with the following structure:
+
+```
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub, # or fetchPypi
+  requests, # example dependency
+  # ...other dependencies
+}:
+
+buildPythonPackage rec {
+  pname = "name of package e.g dep1";
+  version = "version";
+  pyproject = true;
+
+  src = fetchPypi {
+    inherit pname version;
+    hash = "sha256-[hash]";
+  };
+
+  build-system = [
+    # add build time dependencies
+  ];
+
+  dependencies = [
+    requests
+  ];
+
+  pythonImportsCheck = [ "" ];
+
+  # Tests require additional fixtures
+  doCheck = false;
+
+  meta = {
+    description = "...";
+    homepage = "...";
+    license = lib.licenses.bsd3; # for instance
+    maintainers = with lib.maintainers; [ ];
+  };
+}
+```
+
+The pypi information for the package `mofaflex`:
+```
+
+{
+  "pname": "mofaflex",
+  "version": "0.1.0.post1",
+  "python_requires": ">=3.11",
+  "summary": "Factor Analysis Models",
+  "description": "# MOFA-FLEX\n\n[![PyPI][badge-pypi]][pypi]\n[![Tests][badge-tests]][tests]\n[![codecov][badge-codecov]][codecov]\n[![Documentation][badge-docs]][documentation]\n\n[badge-pypi]: https://img.shields.io/pypi/v/mofaflex\n[badge-tests]: https://github.com/bioFAM/mofaflex/actions/workflows/test.yaml/badge.svg\n[badge-codecov]: https://codecov.io/gh/bioFAM/mofaflex/graph/badge.svg?token=IJP1IA4JEU\n[badge-docs]: https://img.shields.io/readthedocs/mofaflex\n\n\n![graphical abstract](https://raw.githubusercontent.com/bioFAM/mofaflex/main/docs/_static/img/mofaflex_schematic.svg)\n\nMOFA-FLEX is a versatile factor analysis framework designed to streamline the construction and training of complex matrix factorisation models for omics data.\nIt is built on a probabilistic programming-based Bayesian factor analysis framework that integrates concepts from multiple existing methods while remaining modular and extensible.\nMOFA-FLEX generalises widely used matrix factorisation tools by incorporating flexible prior options (including structured sparsity priors for multi-omics data and covariate-informed priors for spatio-temporal data), non-negativity constraints, and diverse data likelihoods - allowing users to mix and match components to suit their specific needs.\nAdditionally, MOFA-FLEX introduces a novel module for integrating prior biological knowledge in the form of gene sets or, more generally, variable sets, enabling the inference of interpretable latent factors linked to specific molecular programs.\n\n## Getting started\n\nPlease refer to the [documentation][]. In particular, the\n\n- [Getting started guide][getting started].\n- [Tutorials][].\n- [API documentation][].\n\n## Installation\n\nYou need to have Python 3.11 or newer installed on your system. If you don't have\nPython installed, we recommend installing [Micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html).\n\nThere are several alternative options to install MOFA-FLEX:\n\n1. Install the latest release of MOFA-FLEX from [PyPI][]:\n\n```bash\npip install mofaflex\n```\n\n2. Install the latest development version:\n\n```bash\npip install git+https://github.com/bioFAM/mofaflex.git@main\n```\n\n## Release notes\n\nSee the [changelog][].\n\n## Contact\n\nFor questions and help requests, you can reach out in the [discussions][].\nIf you found a bug, please use the [issue tracker][].\n\n## Citation\n\nIf you use MOFA-FLEX in your work, please cite\n> Qoku A, Rohbeck M, Walter FC, Kats I, Stegle O, and Buettner F.  MOFA-FLEX: A Factor Model Framework for Integrating Omics Data with Prior Knowledge. Preprint at [bioRxiv](https://www.biorxiv.org/content/10.1101/2025.11.03.686250) (2025). DOI: [10.1101/2025.11.03.686250](https://doi.org/10.1101/2025.11.03.686250).\n\n<details><summary>BibTeX</summary>\n\n```bibtex\n@article {mofaflex,\n\tauthor = {Qoku, Arber and Rohbeck, Martin and Walter, Florin Cornelius and Kats, Ilia and Stegle, Oliver and Buettner, Florian},\n\ttitle = {MOFA-FLEX: A Factor Model Framework for Integrating Omics Data with Prior Knowledge},\n\teprint = {2025.11.03.686250},\n\tyear = {2025},\n\tdoi = {10.1101/2025.11.03.686250},\n\tURL = {https://www.biorxiv.org/content/early/2025/11/04/2025.11.03.686250},\n\tarchiveprefix = {bioRxiv}\n}\n```\n</details>\n\n[issue tracker]: https://github.com/bioFAM/mofaflex/issues\n[tests]: https://github.com/bioFAM/mofaflex/actions/workflows/test.yaml\n[codecov]: https://codecov.io/gh/bioFAM/mofaflex\n[documentation]: https://mofaflex.readthedocs.io\n[discussions]: https://github.com/bioFAM/mofaflex/discussions\n[changelog]: https://mofaflex.readthedocs.io/stable/changelog.html\n[getting started]: https://mofaflex.readthedocs.io/stable/notebooks/getting_started.html\n[tutorials]: https://mofaflex.readthedocs.io/stable/tutorials.html\n[api documentation]: https://mofaflex.readthedocs.io/stable/api/index.html\n[pypi]: https://pypi.org/project/mofaflex\n",
+  "homepage": "",
+  "license": "BSD 3-Clause License\n        \n        Copyright (c) 2024 Ilia Kats, Arber Qoku, Florin Walter, Martin Rohbeck\n        All rights reserved.\n        \n        Redistribution and use in source and binary forms, with or without\n        modification, are permitted provided that the following conditions are met:\n        \n        1. Redistributions of source code must retain the above copyright notice, this\n           list of conditions and the following disclaimer.\n        \n        2. Redistributions in binary form must reproduce the above copyright notice,\n           this list of conditions and the following disclaimer in the documentation\n           and/or other materials provided with the distribution.\n        \n        3. Neither the name of the copyright holder nor the names of its\n           contributors may be used to endorse or promote products derived from\n           this software without specific prior written permission.\n        \n        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\"\n        AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\n        IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\n        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\n        FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\n        DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\n        SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\n        CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\n        OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\n        OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.",
+  "author": null,
+  "author_email": "Ilia Kats <i.kats@dkfz.de>, Arber Qoku <arber.qoku@dkfz.de>, Florin Walter <florin.walter@dkfz.de>, Martin Rohbeck <martin.rohbeck@dkfz.de>",
+  "requires_dist": [
+    {
+      "raw": "anndata>=0.11",
+      "pkg": "anndata>=0.11",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "array-api-compat",
+      "pkg": "array-api-compat",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "dtw-python",
+      "pkg": "dtw-python",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "gpytorch",
+      "pkg": "gpytorch",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "h5py",
+      "pkg": "h5py",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "mizani",
+      "pkg": "mizani",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "mudata>=0.3.2",
+      "pkg": "mudata>=0.3.2",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "numpy",
+      "pkg": "numpy",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "packaging",
+      "pkg": "packaging",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "pandas",
+      "pkg": "pandas",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "platformdirs",
+      "pkg": "platformdirs",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "plotnine",
+      "pkg": "plotnine",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "pyro-ppl",
+      "pkg": "pyro-ppl",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "scikit-learn",
+      "pkg": "scikit-learn",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "scipy>=1.8",
+      "pkg": "scipy>=1.8",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "session-info2",
+      "pkg": "session-info2",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "statsmodels",
+      "pkg": "statsmodels",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "torch",
+      "pkg": "torch",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "tqdm",
+      "pkg": "tqdm",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "pre-commit; extra == \"dev\"",
+      "pkg": "pre-commit",
+      "condition": "extra == \"dev\"",
+      "is_optional": true
+    },
+    {
+      "raw": "twine>=4.0.2; extra == \"dev\"",
+      "pkg": "twine>=4.0.2",
+      "condition": "extra == \"dev\"",
+      "is_optional": true
+    },
+    {
+      "raw": "docutils!=0.18.*,!=0.19.*,>=0.8; extra == \"doc\"",
+      "pkg": "docutils!=0.18.*,!=0.19.*,>=0.8",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "ipykernel; extra == \"doc\"",
+      "pkg": "ipykernel",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "ipython; extra == \"doc\"",
+      "pkg": "ipython",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "myst-nb>=1.1; extra == \"doc\"",
+      "pkg": "myst-nb>=1.1",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "pandas; extra == \"doc\"",
+      "pkg": "pandas",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "setuptools; extra == \"doc\"",
+      "pkg": "setuptools",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "sphinx-autodoc-typehints; extra == \"doc\"",
+      "pkg": "sphinx-autodoc-typehints",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "sphinx-automodapi; extra == \"doc\"",
+      "pkg": "sphinx-automodapi",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "sphinx-book-theme>=1; extra == \"doc\"",
+      "pkg": "sphinx-book-theme>=1",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "sphinx-copybutton; extra == \"doc\"",
+      "pkg": "sphinx-copybutton",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "sphinx-tabs; extra == \"doc\"",
+      "pkg": "sphinx-tabs",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "sphinx>=8.1; extra == \"doc\"",
+      "pkg": "sphinx>=8.1",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "sphinxcontrib-bibtex>=1; extra == \"doc\"",
+      "pkg": "sphinxcontrib-bibtex>=1",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "sphinxext-opengraph; extra == \"doc\"",
+      "pkg": "sphinxext-opengraph",
+      "condition": "extra == \"doc\"",
+      "is_optional": true
+    },
+    {
+      "raw": "dask[array,dataframe]!=2025.5; extra == \"lazy\"",
+      "pkg": "dask[array,dataframe]!=2025.5",
+      "condition": "extra == \"lazy\"",
+      "is_optional": true
+    },
+    {
+      "raw": "coverage>=7.10; extra == \"test\"",
+      "pkg": "coverage>=7.10",
+      "condition": "extra == \"test\"",
+      "is_optional": true
+    },
+    {
+      "raw": "dask[array,dataframe]!=2025.5; extra == \"test\"",
+      "pkg": "dask[array,dataframe]!=2025.5",
+      "condition": "extra == \"test\"",
+      "is_optional": true
+    },
+    {
+      "raw": "pytest; extra == \"test\"",
+      "pkg": "pytest",
+      "condition": "extra == \"test\"",
+      "is_optional": true
+    }
+  ],
+  "classifiers": [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14"
+  ],
+  "keywords": null
+}
+```
+
+The pypi information about the package `mudata`:
+```
+{
+  "pname": "mudata",
+  "version": "0.3.3",
+  "python_requires": ">=3.10",
+  "summary": "Multimodal data",
+  "description": "![mudata header](./docs/_static/img/mudata.svg)\n\n[![PyPI][badge-pypi]][pypi]\n[![Tests][badge-tests]][tests]\n[![Documentation][badge-docs]][documentation]\n[![Powered by scverse][badge-scverse]][scverse]\n[![Powered by NumFOCUS][badge-numfocus]][numfocus]\n\n[badge-tests]: https://img.shields.io/github/actions/workflow/status/scverse/mudata/test.yaml?branch=main\n[badge-docs]: https://img.shields.io/readthedocs/mudata\n[badge-pypi]: https://img.shields.io/pypi/v/mudata\n[badge-numfocus]: https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A\n[badge-scverse]: https://img.shields.io/badge/scverse-core-black.svg?labelColor=white&logo=data:image/svg%2bxml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+PCFET0NUWVBFIHN2ZyBQVUJMSUMgIi0vL1czQy8vRFREIFNWRyAxLjEvL0VOIiAiaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkIj4KPHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB2aWV3Qm94PSIwIDAgOTEgOTEiIHZlcnNpb249IjEuMSIKICAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICAgIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWw6c3BhY2U9InByZXNlcnZlIgogICAgeG1sbnM6c2VyaWY9Imh0dHA6Ly93d3cuc2VyaWYuY29tLyIgc3R5bGU9ImZpbGwtcnVsZTpldmVub2RkO2NsaXAtcnVsZTpldmVub2RkO3N0cm9rZS1saW5lam9pbjpyb3VuZDtzdHJva2UtbWl0ZXJsaW1pdDoyOyI+CiAgICA8ZyBpZD0iRWJlbmVfMyI+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0zNSw4OS42Yy0yMi4zLC0zLjQgLTMwLjYsLTE5LjggLTMwLjYsLTE5LjhjMTAuOCwxNi45IDQzLDkuMSA1Mi45LDIuNWMxMi40LC04LjMgOCwtMTUuMyA2LjgsLTE4LjFjNS40LDcuMiA1LjMsMjMuNSAtMS4xLDI5LjRjLTUuNiw1LjEgLTE1LjMsNy45IC0yOCw2WiIgc3R5bGU9ImZpbGw6I2ZmZjtmaWxsLXJ1bGU6bm9uemVybztzdHJva2U6IzAwMDtzdHJva2Utd2lkdGg6MXB4OyIvPgogICAgICAgICAgICA8cGF0aCBkPSJNODMuOSw0My41YzIuOSwtNy4xIDAuOCwtMTIuNSAwLjUsLTEzLjNjLTAuNywtMS4zIC0xLjUsLTIuMyAtMi40LC0zLjFjLTE2LjEsLTEyLjYgLTU1LjksMSAtNzAuOSwxNi44Yy0xMC45LDExLjUgLTEwLjEsMjAgLTYuNywyNS44YzMuMSw0LjggNy45LDcuNiAxMy40LDljLTExLjUsLTEyLjQgOS44LC0zMS4xIDI5LC0zOGMyMSwtNy41IDMyLjUsLTMgMzcuMSwyLjhaIiBzdHlsZT0iZmlsbDojMzQzNDM0O2ZpbGwtcnVsZTpub256ZXJvO3N0cm9rZTojMDAwO3N0cm9rZS13aWR0aDoxcHg7Ii8+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik03OS42LDUwLjRjOSwtMTAuNSA1LC0xOS43IDQuOCwtMjAuNGMtMCwwIDQuNCw3LjEgMi4yLDIyLjZjLTEuMiw4LjUgLTUuNCwxNiAtMTAuMSwxMS44Yy0yLjEsLTEuOCAtMywtNi45IDMuMSwtMTRaIiBzdHlsZT0iZmlsbDojZmZmO2ZpbGwtcnVsZTpub256ZXJvO3N0cm9rZTojMDAwO3N0cm9rZS13aWR0aDoxcHg7Ii8+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik02NCw1NC4yYy0zLjMsLTQuOCAtOC4xLC03LjQgLTEyLjMsLTEwLjhjLTIuMiwtMS43IC0xNi40LC0xMS4yIC0xOS4yLC0xNS4xYy02LjQsLTYuNCAtOS41LC0xNi45IC0zLjQsLTIzLjFjLTQuNCwtMC44IC04LjIsMC4yIC0xMC42LDEuNWMtMS4xLDAuNiAtMi4xLDEuMiAtMi44LDJjLTYuNyw2LjIgLTUuOCwxNyAtMS42LDI0LjNjNC41LDcuOCAxMy4yLDE1LjQgMjQuMywyMi44YzUuMSwzLjQgMTUuNiw4LjQgMTkuMywxNmMxMS43LC04LjEgNy42LC0xNC45IDYuMywtMTcuNloiIHN0eWxlPSJmaWxsOiNiNGI0YjQ7ZmlsbC1ydWxlOm5vbnplcm87c3Ryb2tlOiMwMDA7c3Ryb2tlLXdpZHRoOjFweDsiLz4KICAgICAgICAgICAgPHBhdGggZD0iTTM4LjcsOS44YzcuOSw2LjMgMTIuNCw5LjggMjAsOC41YzUuNywtMSA0LjksLTcuOSAtNCwtMTMuNmMtNC40LC0yLjggLTkuNCwtNC4yIC0xNS43LC00LjJjLTcuNSwtMCAtMTYuMywzLjkgLTIwLjYsNi40YzQsLTIuMyAxMS45LC0zLjggMjAuMywyLjlaIiBzdHlsZT0iZmlsbDojZmZmO2ZpbGwtcnVsZTpub256ZXJvO3N0cm9rZTojMDAwO3N0cm9rZS13aWR0aDoxcHg7Ii8+CiAgICAgICAgPC9nPgogICAgPC9nPgo8L3N2Zz4=\n\n# MuData – multimodal data\n\n[Documentation][] | [Publication][muon paper] | [Changelog][]\n\nFor using `MuData` in multimodal omics applications see [muon][].\n\n## Data structure\n\nIn the same vein as [AnnData][] is designed to represent unimodal annotated datasets in Python, `MuData` is designed to provide functionality to load, process, and store multimodal omics data.\n\n\n```\nMuData\n  .obs     -- annotation of observations (cells, samples)\n  .var     -- annotation of features (genes, genomic loci, etc.)\n  .obsm    -- multidimensional cell annotation,\n              incl. a boolean for each modality\n              that links .obs to the cells of that modality\n  .varm    -- multidimensional feature annotation,\n              incl. a boolean vector for each modality\n              that links .var to the features of that modality\n  .mod\n    AnnData\n      .X    -- data matrix (cells x features)\n      .obs  -- cell metadata (assay-specific)\n      .var  -- annotation of features (genes, peaks, genomic sites)\n      .obsm\n      .varm\n      .uns\n  .uns\n```\n\n## Overview\n\n### Input\n\n`MuData` can be thought of as a multimodal container, in which every modality is an AnnData object:\n\n```py\nfrom mudata import MuData\n\nmdata = MuData({'rna': adata_rna, 'atac': adata_atac})\n```\n\nIf multimodal data from 10X Genomics is to be read, convenient readers are provided by [muon][] that return a `MuData` object with AnnData objects inside, each corresponding to its own modality:\n\n```py\nimport muon as mu\n\nmu.read_10x_h5(\"filtered_feature_bc_matrix.h5\")\n# MuData object with n_obs × n_vars = 10000 × 80000\n# 2 modalities\n#   rna:\t10000 x 30000\n#     var:\t'gene_ids', 'feature_types', 'genome', 'interval'\n#   atac:\t10000 x 50000\n#     var:\t'gene_ids', 'feature_types', 'genome', 'interval'\n#     uns:\t'atac', 'files'\n```\n\n### I/O with `.h5mu` files\n\n`MuData` objects represent modalities as collections of AnnData objects. These collections can be saved to disk and retrieved using HDF5-based `.h5mu` files, which design is based on `.h5ad` file structure.\n\n```py\nimport mudata as md\n\nmdata_pbmc.write(\"pbmc_10k.h5mu\")\nmdata = md.read(\"pbmc_10k.h5mu\")\n```\n\nIt allows to effectively use the hierarchical nature of HDF5 files and to read/write AnnData object directly from/to `.h5mu` files:\n\n```py\nadata = md.read(\"pbmc_10k.h5mu/rna\")\nmd.write(\"pbmc_10k.h5mu/rna\", adata)\n```\n\n## Citation\n\nIf you use `mudata` in your work, please cite the publication as follows:\n\n> **MUON: multimodal omics analysis framework**\n>\n> Danila Bredikhin, Ilia Kats, Oliver Stegle\n>\n> _Genome Biology_ 2022 Feb 01. doi: [10.1186/s13059-021-02577-8][muon paper].\n\nYou can cite the scverse publication as follows:\n\n> **The scverse project provides a computational ecosystem for single-cell omics data analysis**\n>\n> Isaac Virshup, Danila Bredikhin, Lukas Heumos, Giovanni Palla, Gregor Sturm, Adam Gayoso, Ilia Kats, Mikaela Koutrouli, Scverse Community, Bonnie Berger, Dana Pe’er, Aviv Regev, Sarah A. Teichmann, Francesca Finotello, F. Alexander Wolf, Nir Yosef, Oliver Stegle & Fabian J. Theis\n>\n> _Nat Biotechnol._ 2023 Apr 10. doi: [10.1038/s41587-023-01733-8][scverse paper].\n\n[//]: # (numfocus-fiscal-sponsor-attribution)\n\nmudata is part of the scverse® project ([website][scverse], [governance](https://scverse.org/about/roles)) and is fiscally sponsored by [NumFOCUS][].\nIf you like scverse® and want to support our mission, please consider making a tax-deductible [donation](https://numfocus.org/donate-to-scverse) to help the project pay for developer time, professional services, travel, workshops, and a variety of other needs.\n\n<div align=\"center\">\n<a href=\"https://numfocus.org/project/scverse\">\n  <img\n    src=\"https://raw.githubusercontent.com/numfocus/templates/master/images/numfocus-logo.png\"\n    width=\"200\"\n  >\n</a>\n</div>\n\n[tests]: https://github.com/scverse/mudata/actions/workflows/test.yaml\n[documentation]: https://mudata.readthedocs.io\n[changelog]: https://mudata.readthedocs.io/en/latest/changelog.html\n[pypi]: https://pypi.org/project/mudata\n[numfocus]: https://numfocus.org\n[scverse]: https://scverse.org\n[muon]: https://github.com/scverse/muon\n[anndata]: https://github.com/scverse/anndata\n[muon paper]: https://doi.org/10.1186/s13059-021-02577-8\n[scverse paper]: https://doi.org/10.1038/s41587-023-01733-8\n",
+  "homepage": "https://muons.scverse.org",
+  "license": "BSD 3-Clause License\n        \n        Copyright (c) 2020, Danila Bredikhin\n        Copyright (c) 2025, scverse®\n        All rights reserved.\n        \n        Redistribution and use in source and binary forms, with or without\n        modification, are permitted provided that the following conditions are met:\n        \n        1. Redistributions of source code must retain the above copyright notice, this\n           list of conditions and the following disclaimer.\n        \n        2. Redistributions in binary form must reproduce the above copyright notice,\n           this list of conditions and the following disclaimer in the documentation\n           and/or other materials provided with the distribution.\n        \n        3. Neither the name of the copyright holder nor the names of its\n           contributors may be used to endorse or promote products derived from\n           this software without specific prior written permission.\n        \n        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\"\n        AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\n        IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\n        DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\n        FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\n        DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\n        SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\n        CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\n        OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\n        OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.",
+  "author": "Danila Bredikhin",
+  "author_email": null,
+  "requires_dist": [
+    {
+      "raw": "anndata>=0.10.8",
+      "pkg": "anndata>=0.10.8",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "numpy",
+      "pkg": "numpy",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "pandas>=1.4",
+      "pkg": "pandas>=1.4",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "scipy",
+      "pkg": "scipy",
+      "condition": null,
+      "is_optional": false
+    },
+    {
+      "raw": "session-info2",
+      "pkg": "session-info2",
+      "condition": null,
+      "is_optional": false
+    }
+  ],
+  "classifiers": [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Bio-Informatics"
+  ],
+  "keywords": null
+}
+```

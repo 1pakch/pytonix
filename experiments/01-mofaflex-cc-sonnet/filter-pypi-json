@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# extract-pypi-json.sh - Extract relevant PyPI JSON info
+
+jq '
+  # Helper function to parse requires_dist
+  def parse_requires_dist:
+    map(
+      . as $req |
+      if test(";") then
+        ($req | split(";")) as [$pkg, $condition] |
+        {
+          raw: $req,
+          pkg: ($pkg | gsub("^\\s+|\\s+$"; "")),
+          condition: ($condition | gsub("^\\s+|\\s+$"; ""))
+        }
+      else
+        {
+          raw: $req,
+          pkg: ($req | gsub("^\\s+|\\s+$"; "")),
+          condition: null
+        }
+      end |
+      .is_optional = (.condition != null and (.condition | contains("extra")))
+    );
+  
+  {
+    pname: .info.name,
+    version: .info.version,
+    python_requires: .info.requires_python,
+    summary: .info.summary,
+    description: .info.description,
+    homepage: (.info.home_page // .info.project_urls.Homepage // ""),
+    license: .info.license,
+    author: .info.author,
+    author_email: .info.author_email,
+    requires_dist: (.info.requires_dist // [] | parse_requires_dist),
+    classifiers: (.info.classifiers // []),
+    keywords: .info.keywords
+  }
+' "$@"
