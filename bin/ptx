@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+here=$(dirname "$0")  # path to this script, e.g. ./bin from repo root
+src="$here/../src"    # path to ./src directory containing flake.nix
+exec nix run "$src" -- "$@"

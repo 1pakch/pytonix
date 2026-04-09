@@ -2,3 +2,7 @@
 **/result-*
 **/.*swp
 **/.*swo
+.envrc
+__pycache__/
+*.pyc
+*.pyo
