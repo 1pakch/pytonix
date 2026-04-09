@@ -1,0 +1,4 @@
+- gemma-3-4b-it:free wasn't a good fit and didn't get even the nix syntax right
+- qwen3-coder-next did extremely good job and provided good reasoning output (i did't verify formally yet)
+- in both cases the output json was wrapped into markdown ```json header
+- surprising output json structure (extra list in `files`) which I put in template without realizing
