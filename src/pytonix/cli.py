@@ -3,6 +3,7 @@
 import sys
 import click
 from . import openrouter
+from .openrouter import DEFAULT_MODEL
 
 
 @click.group()
@@ -13,8 +14,7 @@ def main():
 
 @main.command()
 @click.option("--prompt", "-p", type=click.Path(exists=True), help="Prompt literal text")
-@click.option("--prompt-file", "-p", type=click.Path(exists=True), help="Prompt file path")
-@click.option("--model", "-m", default="anthropic/claude-3.5-sonnet", help="Model to use")
+@click.option("--model", "-m", default=DEFAULT_MODEL, help="Model to use")
 def run(prompt: str, model: str):
     """Run a one-shot completion and return JSON output.
 
@@ -35,7 +35,7 @@ def run(prompt: str, model: str):
         response_content = openrouter.complete_chat(user_prompt=prompt_text, model=model)
         click.echo(response_content)
     except openrouter.OpenRouterError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(str(e), err=True)
         sys.exit(1)
 
 
@@ -48,7 +48,7 @@ def models():
         for model in model_list:
             click.echo(f"  - {model['id']}")
     except openrouter.OpenRouterError as e:
-        click.echo(f"Error: {e}", err=True)
+        click.echo(str(e), err=True)
         sys.exit(1)
 
 
