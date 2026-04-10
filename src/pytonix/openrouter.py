@@ -5,7 +5,7 @@ import httpx
 from typing import Optional
 
 # API configuration
-DEFAULT_MODEL = "google/gemma-3-4b-it:free"
+DEFAULT_MODEL = "qwen/qwen3-coder-next"
 CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODELS_URL = "https://openrouter.ai/api/v1/models"
 

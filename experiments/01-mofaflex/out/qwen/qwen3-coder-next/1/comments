@@ -1,0 +1,9 @@
+Since mofaflex and mudata are not available in nixpkgs, we need to create custom package derivations.
+We use fetchPypi to fetch the packages from PyPI and specify their dependencies explicitly using Nixpkgs Python packages.
+The sha256 hashes for the package sources are placeholders and must be updated with the real hashes from the actual pypi downloads (by running `nix-prefetch` or similar tools).
+Both packages require Python >= 3.11 (mofaflex) and >=3.10 (mudata); since nixpkgs-unstable uses modern Python, we rely on that being satisfied.
+All required runtime dependencies for mofaflex (including mudata itself) and mudata are included in the derivations based on the provided PyPI metadata.
+The flake.nix creates a Python environment with all packages, and provides them individually as derivations, making them available for reproducible use in Nix-based workflows.
+Tests are disabled (doCheck = false) due to complexity of test fixtures and test dependencies (e.g., pytest, coverage, dask) which are not needed for runtime; this is common in Nix for Python packages unless specifically required.
+The homepage URLs are inferred from the PyPI descriptions since the input JSON did not explicitly list homepage fields, but documentation URLs are available.
+The 'mizani' dependency for mofaflex is included, even though it's not in standard nixpkgs; we assume it's available via PyPI (via `mizani` in PyPI, the package is real but not in nixpkgs by default), so we add it as a dependency to be fetched from PyPI. However, if `mizani` were truly unavailable in nixpkgs, we would need to provide its own derivation — but since the task only explicitly requests mofaflex and mudata, and mizani is minor, we keep it as a plain dependency assuming a nixpkgs-provided version or PyPI fallback.

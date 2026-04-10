@@ -1,9 +1,4 @@
-#model='gemma-3-4b-it:free'
-#outdir="out/${model}/1"
-#mkdir -p "${outdir}"
-#cat prompt | ../../bin/ptx run --model "${model}" >"${outdir}/response.json"
-
 model='qwen/qwen3-coder-next'
 outdir="out/${model}/1"
 mkdir -p "${outdir}"
-cat prompt | ../../bin/ptx run --model "${model}" >"${outdir}/response.json"
+cat prompt | ../../bin/ptx one-shot --model "${model}" >"${outdir}/response.json"
