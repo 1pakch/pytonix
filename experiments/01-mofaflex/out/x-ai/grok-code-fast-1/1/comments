@@ -1,0 +1,4 @@
+The SHA256 hashes for the source archives need to be computed and replaced in the src sections of both derivative files, as they cannot be determined without fetching the packages.
+All listed dependencies are assumed to be available in nixpkgs under the standard Python package names; if any are missing or named differently, additional adjustments may be needed.
+The build-system is set to setuptools assuming the packages use setup.py; if they use pyproject.toml with different build systems (e.g., hatchling or poetry), this may need updating.
+Python version is set by pkgs.python3 which defaults to the latest in nixpkgs; ensure it meets the minimum requirements (>=3.11 for mofaflex, >=3.10 for mudata).

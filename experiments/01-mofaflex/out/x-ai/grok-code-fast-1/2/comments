@@ -1,0 +1,8 @@
+Used fetchPypi for both packages since they are available on PyPI as per the provided info.
+Assumed standard PYTHONPATH dependencies are available in nixpkgs (e.g., anndata, numpy, etc.), and only listed them as dependencies without needing to define them here as the task specifies only mofaflex and mudata.
+Used placeholder hashes for fetchPypi as actual hashes cannot be computed here; they need to be replaced with real nix-hash output.
+Assumed pyproject = true and setuptools as build-system, common for Python packages; adjust if incorrect based on actual pyproject.toml.
+Used description from the PyPI info for meta, and set homepage to GitHub repos mentioned in descriptions.
+Disabled doCheck as per template, noting that tests might require additional setup.
+For mofaflex, mudata is listed as a dependency as per requires_dist (>=0.3.2).
+Python requires (>=3.11 for mofaflex, >=3.10 for mudata) but not enforced in derivation as Nix manages Python version via inputs.

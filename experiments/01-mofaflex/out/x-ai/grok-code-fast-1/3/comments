@@ -1,0 +1,6 @@
+Used fetchPypi for source fetching as the packages are on PyPI.
+Hashes are placeholders; real hashes need to be obtained using nix-prefetch-url or nix build --rebuild.
+mudata is a dependency of mofaflex, included as dep1.
+Assumed Python 3.11+ for mofaflex as per its python_requires; flake uses default python3.pkgs.
+Included only runtime dependencies; optional extras ignored for core package.
+Build system assumed as setuptools based on pyproject.toml presence.

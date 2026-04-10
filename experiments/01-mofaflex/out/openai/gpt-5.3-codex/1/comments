@@ -1,0 +1,2 @@
+I used lib.fakeSha256 for both PyPI sources because exact source hashes must be computed by a first nix build attempt (or prefetch). Replace with the real sha256 values after running nix build.
+I assumed hatchling as the PEP517 build backend for both projects. If build fails due to backend mismatch, inspect each package's pyproject.toml and update build-system accordingly (e.g. setuptools, poetry-core, or other backend).

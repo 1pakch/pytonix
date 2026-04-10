@@ -1,0 +1,9 @@
+The flake uses nixos-unstable channel to get recent Python packages and maintain compatibility with modern Python ecosystem requirements.
+Both mofaflex and mudata are built as Python packages with pyproject format, as both projects use modern Python packaging standards.
+mudata is added as a dependency for mofaflex and is packaged first since mofaflex depends on it.
+PyPI hashes are stubbed (with placeholder values like "sha256-...") as real hashes require computing them during build time or using nix-py2nix; real hashes would be needed for a production flake.
+mofaflex requires Python >=3.11 and the flake doesn't restrict Python version explicitly in the derivation, assuming it uses the system's Python 3.11+.
+Some optional dependencies (dev/doc/test extras) are intentionally omitted from the main package to keep the core package minimal, aligning with the primary use case.
+gpytorch and pyro-ppl are included as they are core dependencies required by mofaflex; note that gpytorch in Nixpkgs may require building PyTorch extensions which could be heavy but is necessary for full functionality.
+Tests are disabled (doCheck = false) for both packages because they often require additional fixtures, network access, or large datasets not easily provided in a Nix sandboxed environment.
+The flake structure separates the two packages (mofaflex and mudata) into separate derivations in the files/ directory as requested, and both are exposed in the packages output of the flake.

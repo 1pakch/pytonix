@@ -1,0 +1,9 @@
+Both mofaflex and mudata are required to be packaged manually since they are not available in nixpkgs.
+The flake.nix uses nixos-unstable channel to access latest Python packages and uses flake-utils for multi-platform support.
+The flake imports derivations from ./main and ./dep1 but wraps them with the package set provided by nixpkgs python environment that already contains mudata and other dependencies.
+The fetchPypi hashes (sha256-...) are placeholders; real hashes should be computed using nix-prefetch or by building once and checking output hash.
+Since mofaflex requires Python >=3.11 and mudata >=3.10, the default Python 3 version from nixpkgs nixos-unstable (currently 3.12) satisfies both.
+The flake uses buildPythonPackage with pyproject = true implicitly by default in modern nixpkgs, but the pyproject flag was omitted since the package metadata indicates pyproject.toml usage.
+Tests are disabled (doCheck = false) per instructions; in practice, tests for mofaflex would require large fixtures and are non-trivial to set up.
+The mudata dependency in mofaflex means mudata must be present before mofaflex in the environment, which is ensured by ordering in the flake's pythonWithPackages.
+The flake exposes both packages separately (mofaflex, mudata) and sets mofaflex as the default package.

@@ -1,0 +1,2 @@
+I used lib.fakeHash for both fetchPypi sources. Please run a build once (e.g. `nix build .#mofaflex`) and replace with the real SRI hashes reported by Nix.
+I mapped several hyphenated Python dependency names to underscore aliases in flake scope (e.g. `pyro-ppl` -> `pyro_ppl`) to keep derivation arguments valid Nix identifiers. If your nixpkgs revision lacks any of these dependencies (for example `dtw-python`, `gpytorch`, or `session-info2`), they must be added similarly as extra local derivations.

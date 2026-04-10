@@ -1,0 +1,2 @@
+I used lib.fakeHash for both fetchPypi sources so you can run a build once and replace with the real hashes reported by Nix.
+Some dependency attribute names in nixpkgs can differ from PyPI names depending on channel/version; if evaluation fails on a specific dependency name, please share the exact nixpkgs revision and I can adjust the attribute mapping.
