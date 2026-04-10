@@ -2,15 +2,16 @@
   lib,
   buildPythonPackage,
   fetchFromGitHub,
-  mudata,
-  hatchling,
-  hatch-vcs,
   anndata,
   array-api-compat,
+  dask,
   dtw-python,
   gpytorch,
   h5py,
+  hatchling,
+  hatch-vcs,
   mizani,
+  mudata,
   numpy,
   packaging,
   pandas,
@@ -23,7 +24,6 @@
   statsmodels,
   torch,
   tqdm,
-  dask
 }:
 
 buildPythonPackage rec {
@@ -44,13 +44,13 @@ buildPythonPackage rec {
   ];
 
   dependencies = [
-    mudata
     anndata
     array-api-compat
     dtw-python
     gpytorch
     h5py
     mizani
+    mudata
     numpy
     packaging
     pandas
