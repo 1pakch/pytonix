@@ -1,31 +1,14 @@
-I'd recommend the nixpkgs-style subdirectories (mofaflex/default.nix, mudata/default.nix) because:
+The derivation here resulted from a semi-interactive attempt using Claude Code with Opus 4.5.
 
-1. Each package can have its own additional files (patches, tests, etc.) without cluttering the root
-2. Easier to copy/reference nixpkgs examples directly
-3. Scales better if you add more packages later
-4. callPackage ./mofaflex {} reads more naturally than callPackage ./mofaflex.nix {}
+Note the initial instructions were suboptimal as they provided an explicit commit of mofa-flex to check out from the repo. In reality we maybe want to follow the latest release on pypi? Moreover the resulting flake does not have a devShell that would be nixc to have to test whether the package works.
 
-The flat file approach (mofaflex.nix, mudata.nix) is fine too if you want to keep it minimal and don't expect to add patches or extra files per package.
+The resulting code seems is ok but is lightly unidiomatic for nixpkgs becase not all package dependencies of `mofaflex` and `mudata` are declared as the arguments of the derivation. Instead they are imported from nixpkgs within the derivation. It violates the nixpkgs conventions and does not allow for overriding the input dependencies with modified versions etc.
 
----
+The mofaflex derivation produced by Claude included the line `env.SETUPTOOLS_SCM_PRETEND_VERSION = version`; which is not necessary since nixpkgs already handles this automatically via a setup hook in the `setuptools-scm` package. The override within the derivation definitions of Python packages is still prevalent in nixpkgs as of 2026-04-06 (commit `8b52132`).
+Background:
 
-## SETUPTOOLS_SCM_PRETEND_VERSION
-
-When a package uses `hatch-vcs` or `setuptools-scm`, it reads version from git tags. But `fetchFromGitHub` has no `.git` directory.
-
-Fix:
-```nix
-env.SETUPTOOLS_SCM_PRETEND_VERSION = "0.1.0.post1";
-```
-
-**Where to get the version:** Check PyPI (https://pypi.org/project/PACKAGE/) for the latest release version.
-
-**Why two versions?**
-- Nix version: `0.1.0.post1-unstable-2025-03-26` - includes date suffix (nixpkgs convention)
-- Python version: `0.1.0.post1` - strictly PEP 440 compliant (what `pip show` reports)
-
----
-
-## Hashes
-
-Can I get the hash before building?
+- `setuptools-scm` (Source Control Management) determines the package version by reading git tags from the repository's SCM history. In a Nix build sandbox the source tree has no `.git` directory, so `setuptools-scm` cannot determine the version and would fail without intervention
+- setuptools-scm package in nixpkgs ships a setup hook (pkgs/development/python-modules/setuptools-scm/setup-hook.sh) that automatically sets SETUPTOOLS_SCM_PRETEND_VERSION to the derivation's version attribute at build time, solving this problem
+- The hook was added in commit `4c1f249` (Dec 20, 2023, by yajo/mweinelt) and only fires if `setuptools-scm` is in build-system and `SETUPTOOLS_SCM_PRETEND_VERSION` isn't already set
+- For hatch-vcs projects like mofaflex it works transitively since hatch-vcs depends on setuptools-scm
+- LLMs still suggest the manual override because most training data predates the hook and hundreds of existing nixpkgs package definitions still include it
