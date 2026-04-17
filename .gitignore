@@ -2,7 +2,8 @@
 **/result-*
 **/.*swp
 **/.*swo
-.envrc
+**/.envrc.secrets
+**/.direnv
 __pycache__/
 *.pyc
 *.pyo
