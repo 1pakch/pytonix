@@ -13,7 +13,7 @@ from .openrouter import DEFAULT_MODEL
 
 @click.group()
 def main():
-    """ptx - Experimental tool to wrap Python packages for Nix."""
+    """ptx - Experimental harness for nixifyin Python packages."""
     pass
 
 

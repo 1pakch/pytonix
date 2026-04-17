@@ -23,16 +23,14 @@
           export PYTHONPATH="${self}"
           exec ${pythonEnv}/bin/python -m pytonix "$@"
         '';
-
-      in
-      {
+      in {
         apps.default = {
           type = "app";
           program = "${ptx}";
         };
 
         devShells.default = pkgs.mkShell {
-          buildInputs = [ pythonEnv ];
+          buildInputs = [ pythonEnv pkgs.ruff ];
         };
       }
     );
