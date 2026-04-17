@@ -8,7 +8,7 @@
   numpy,
   pandas,
   scipy,
-  session-info2
+  session-info2,
 }:
 
 buildPythonPackage rec {

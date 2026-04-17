@@ -30,7 +30,11 @@
         };
 
         devShells.default = pkgs.mkShell {
-          buildInputs = [ pythonEnv pkgs.ruff ];
+          buildInputs = [
+	    pythonEnv
+            pkgs.ruff
+            pkgs.nixfmt
+          ];
         };
       }
     );
