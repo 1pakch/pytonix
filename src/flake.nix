@@ -16,6 +16,7 @@
           httpx
           click
           msgspec
+          pytest
         ]);
 
         # ptx cli tool wrapper script
@@ -35,6 +36,10 @@
             pkgs.ruff
             pkgs.nixfmt
           ];
+          # Set PYTHONPATH so pytest and other tools can import pytonix module
+          shellHook = ''
+            export PYTHONPATH="${self}"
+          '';
         };
       }
     );

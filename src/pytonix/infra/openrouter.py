@@ -1,6 +1,7 @@
 """OpenRouter API client."""
 
 import os
+import json
 import httpx
 import msgspec
 from typing import Optional
@@ -17,7 +18,50 @@ _MODELS_CACHE: list[dict] | None = None
 
 
 class OpenRouterError(Exception):
-    pass
+    """OpenRouter API error with structured error data."""
+
+    def __init__(
+        self,
+        message: str,
+        provider_error: str | None = None,
+        provider_name: str | None = None,
+        error_data: dict | None = None,
+    ):
+        super().__init__(message)
+        self.provider_error = provider_error
+        self.provider_name = provider_name
+        self.error_data = error_data
+
+
+def _extract_error_info(error_data: dict) -> tuple[str, str | None, str | None]:
+    """Extract error message, provider error, and provider name from API response.
+
+    Returns:
+        Tuple of (error_message, provider_error, provider_name)
+    """
+    error_obj = error_data.get("error", {})
+    api_error = error_obj.get("message", "Unknown error")
+
+    # Try to extract nested provider error from metadata.raw
+    provider_error = None
+    provider_name = None
+
+    if metadata := error_obj.get("metadata", {}):
+        provider_name = metadata.get("provider_name")
+        if raw := metadata.get("raw"):
+            try:
+                provider_data = json.loads(raw)
+                provider_error = provider_data.get("error", {}).get("message")
+            except Exception:
+                pass
+
+    # Prefer provider error if available
+    if provider_error and provider_name:
+        message = f"{provider_name} error: {provider_error}"
+    else:
+        message = f"OpenRouter API error: {api_error}"
+
+    return message, provider_error, provider_name
 
 
 def get_api_key() -> str:
@@ -44,14 +88,24 @@ def _send_request(request: httpx.Request, timeout_seconds: float) -> dict:
             response.raise_for_status()
             return response.json()
     except httpx.HTTPStatusError as e:
-        # Try to extract error message from API response
+        # Try to extract structured error info from API response
         try:
             error_data = e.response.json()
-            api_error = error_data.get("error", {}).get("message", str(e))
-            error_msg = f"OpenRouter API error: {api_error}"
+            message, provider_error, provider_name = _extract_error_info(error_data)
+
+            # Add note about accessing full error data
+            full_message = f"{message} (Full error information available in `exception.error_data`)."
+
+            raise OpenRouterError(
+                full_message,
+                provider_error=provider_error,
+                provider_name=provider_name,
+                error_data=error_data.get("error"),
+            ) from e
+        except OpenRouterError:
+            raise
         except Exception:
-            error_msg = f"HTTP error: {e}"
-        raise OpenRouterError(error_msg) from e
+            raise OpenRouterError(f"HTTP error: {e}") from e
     except httpx.HTTPError as e:
         raise OpenRouterError(f"HTTP error: {e}") from e
     except Exception as e:
