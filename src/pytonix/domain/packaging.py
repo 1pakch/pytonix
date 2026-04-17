@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 import msgspec
 
 
@@ -40,3 +41,11 @@ class NixFlake(msgspec.Struct, frozen=True, tag=True):
     "A nix flake for a packaging task."
 
     files: dict[RelativePath, FileContents]
+
+    def __post_init__(self):
+        for path in self.files:
+            p = Path(path)
+            if p.is_absolute():
+                raise ValueError(f"Path must be relative, got absolute: {path}")
+            if ".." in p.parts:
+                raise ValueError(f"Path '{path}' contains '..': security risk (path traversal)")

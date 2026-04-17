@@ -37,6 +37,9 @@
             pkgs.nixfmt
           ];
           # Set PYTHONPATH so pytest and other tools can import pytonix module
+          # NOTE: ${self} points to a git snapshot in /nix/store, so you need to
+          # exit and re-run `nix develop` after staging new files with `git add`
+          # for them to be visible to pytest and other tools.
           shellHook = ''
             export PYTHONPATH="${self}"
           '';
