@@ -13,3 +13,15 @@ def get_pypi_cache_dir(*extra_parts: str) -> Path:
     path = root.joinpath(*extra_parts) if extra_parts else root
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def get_packages_info_cache_dir(*extra_parts: str) -> Path:
+    """Get cache directory for packages-info.json and derived caches like pythonPackages3xx."""
+    envvar = os.environ.get("PACKAGES_INFO_CACHE_DIR")
+    if envvar:
+        root = Path(envvar)
+    else:
+        root = platformdirs.user_cache_path(appname="pytonix") / "packages-info"
+    path = root.joinpath(*extra_parts) if extra_parts else root
+    path.mkdir(parents=True, exist_ok=True)
+    return path

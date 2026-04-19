@@ -4,7 +4,7 @@ import sys
 import click
 import packaging.markers
 
-from pytonix.infra import openrouter, pypi
+from pytonix.infra import openrouter, pypi, nixpkgs
 from pytonix.infra.openrouter import DEFAULT_MODEL
 
 
@@ -23,6 +23,12 @@ def llm_group():
 @main.group("pypi")
 def pypi_group():
     """PyPI package commands."""
+    pass
+
+
+@main.group("nixpkgs")
+def nixpkgs_group():
+    """Nixpkgs-related commands."""
     pass
 
 
@@ -114,6 +120,21 @@ def deps_cli_cmd(package: str, version: str | None, max_depth: int | None):
                 handle_fetch_error(name, e)
 
     traverse(package)
+
+
+@nixpkgs_group.command("fetch-index")
+@click.argument("flake_ref")
+def fetch_index_cli_cmd(flake_ref: str):
+    """Fetch and cache packages-info.json.gz for a nixpkgs flake ref.
+
+    Example: ptx nixpkgs fetch-index github:NixOS/nixpkgs/nixos-unstable
+    """
+    try:
+        cache_path = nixpkgs.get_packages_info(flake_ref)
+        click.echo(f"Packages info cached at: {cache_path}")
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
