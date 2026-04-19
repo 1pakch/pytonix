@@ -16,6 +16,8 @@
           httpx
           click
           msgspec
+          platformdirs
+          packaging
           pytest
         ]);
 

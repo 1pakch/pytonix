@@ -13,7 +13,7 @@ def test_write_and_read_roundtrip(tmp_path):
     """Write a flake and read it back."""
     flake = NixFlake(
         files={
-            "flake.nix": "{ description = \"test\"; }",
+            "flake.nix": '{ description = "test"; }',
             "default.nix": "{ }",
             "src/module.nix": "{ foo = 1; }",
         }

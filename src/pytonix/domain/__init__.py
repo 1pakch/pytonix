@@ -1,4 +1,4 @@
-from .packaging import PypiPackage, PythonPackagingTask, NixFlake
+from .packaging import PypiPackageRef, PythonPackagingTask, NixFlake
 from .llms import LlmMessage, LlmChatTranscript, AttemptLlmTrace
 from .attempt import PackagingAttempt, HumanAuthored, AgentAuthored
 
