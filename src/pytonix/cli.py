@@ -3,26 +3,28 @@
 import sys
 import click
 
-from pathlib import Path
-
-from . import openrouter
-from . import output 
-
-from .openrouter import DEFAULT_MODEL
+from pytonix.infra import openrouter
+from pytonix.infra.openrouter import DEFAULT_MODEL
 
 
 @click.group()
 def main():
-    """ptx - Experimental harness for nixifyin Python packages."""
+    """ptx - Experimental harness for nixifying Python packages."""
     pass
 
 
-@main.command("one-shot")
-@click.option("--model", "-m", default=DEFAULT_MODEL, help= f"Model to use (default: {DEFAULT_MODEL})")
-def one_shot_cli_cmd(model: str):
-    """Run a one-shot completion and return JSON output.
+@main.group("llm")
+def llm_group():
+    """LLM-related commands."""
+    pass
 
-    Reads the (user) prompt from the stdin.
+
+@llm_group.command("one-shot")
+@click.option("--model", "-m", default=DEFAULT_MODEL, help=f"Model to use (default: {DEFAULT_MODEL})")
+def one_shot_cli_cmd(model: str):
+    """Run a one-shot completion.
+
+    Reads the (user) prompt from stdin.
     """
     prompt_text = sys.stdin.read()
 
@@ -38,35 +40,7 @@ def one_shot_cli_cmd(model: str):
         sys.exit(1)
 
 
-@main.command("extract-files")
-@click.argument("directory", default=".")
-def extract_files_cli_cmd(directory: str):
-    """Extract files from the JSON output and write them to the disk.
-
-    Reads JSON from the stdin.
-    """
-    json_input = sys.stdin.read()
-
-    if not json_input.strip():
-        click.echo("Error: No JSON input provided", err=True)
-        sys.exit(1)
-
-    try:
-        codegen = output.parse_codegen_response(json_input)
-    except Exception as e:
-        click.echo(f"Error: Failed to parse JSON: {e}", err=True)
-        sys.exit(1)
-
-    try:
-        written_files = output.extract_files(codegen, directory)
-        for file_path in written_files:
-            click.echo(f"Wrote: {file_path}", err=True)
-    except OSError as e:
-        click.echo(f"OS Error: {e}", err=True)
-        sys.exit(1)
-
-
-@main.command("list-models")
+@llm_group.command("list-models")
 def list_models_cli_cmd():
     """List available models from OpenRouter."""
     try:
