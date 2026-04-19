@@ -25,3 +25,8 @@ def get_packages_info_cache_dir(*extra_parts: str) -> Path:
     path = root.joinpath(*extra_parts) if extra_parts else root
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def get_default_nixpkgs_ref() -> str:
+    """Get default nixpkgs reference from environment or fallback."""
+    return os.environ.get("PTX_DEFAULT_NIXPKGS_REF", "github:NixOS/nixpkgs/nixos-unstable")

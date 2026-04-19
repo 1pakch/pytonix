@@ -4,19 +4,19 @@ import sys
 import click
 import packaging.markers
 
-from pytonix.infra import openrouter, pypi, nixpkgs
+from pytonix.infra import openrouter, pypi, nixpkgs, config
 from pytonix.infra.openrouter import DEFAULT_MODEL
 
 
-@click.group()
+class OrderedGroup(click.Group):
+    """Click group that preserves command order."""
+    def list_commands(self, ctx):
+        return list(self.commands)
+
+
+@click.group(cls=OrderedGroup)
 def main():
     """ptx - Experimental harness for nixifying Python packages."""
-    pass
-
-
-@main.group("llm")
-def llm_group():
-    """LLM-related commands."""
     pass
 
 
@@ -29,6 +29,12 @@ def pypi_group():
 @main.group("nixpkgs")
 def nixpkgs_group():
     """Nixpkgs-related commands."""
+    pass
+
+
+@main.group("llm")
+def llm_group():
+    """LLM-related commands."""
     pass
 
 
@@ -135,6 +141,102 @@ def fetch_index_cli_cmd(flake_ref: str):
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
+
+@pypi_group.command("nixify")
+@click.argument("package")
+@click.option("--python-version", "-p", required=True, help="Python version (e.g., 3.13, 3.11)")
+@click.option("--nixpkgs-ref", "-n", default=None, help="Nixpkgs flake reference (default: $PTX_DEFAULT_NIXPKGS_REF)")
+@click.option("--package-version", "-v", default=None, help="Package version (default: latest)")
+@click.option("--max-depth", "-d", default=None, type=int, help="Maximum recursion depth")
+def nixify_cli_cmd(
+    package: str,
+    python_version: str,
+    nixpkgs_ref: str | None,
+    package_version: str | None,
+    max_depth: int | None,
+):
+    """Show dependency tree with nixpkgs/PyPI resolution.
+
+    Example: ptx pypi nixify requests -p 3.13
+    """
+    # Use default nixpkgs ref if not specified
+    if nixpkgs_ref is None:
+        nixpkgs_ref = config.get_default_nixpkgs_ref()
+    env = packaging.markers.default_environment()
+    visited = {}  # name -> source ("nixpkgs" or "pypi")
+
+    # Convert Python version and get nixpkgs index
+    nix_ver = nixpkgs.dotted_version_to_nix(python_version)
+    try:
+        nix_packages = nixpkgs.get_python_packages_index(nixpkgs_ref, nix_ver)
+    except Exception as e:
+        click.echo(f"Error loading nixpkgs index: {e}", err=True)
+        sys.exit(1)
+
+    def print_package(name: str, depth: int, annotation: str = ""):
+        indent = "  "
+        suffix = f" {annotation}" if annotation else ""
+        print(indent * depth + name + suffix)
+
+    def lookup_in_nixpkgs(name: str) -> bool:
+        """Check if package exists in nixpkgs (case-insensitive, handle name variations)"""
+        # Try exact match
+        if name in nix_packages:
+            return True
+        # Try lowercase
+        name_lower = name.lower()
+        if name_lower in nix_packages:
+            return True
+        # Try with underscores instead of hyphens
+        name_underscore = name.replace("-", "_")
+        if name_underscore in nix_packages:
+            return True
+        return False
+
+    def traverse(name: str, depth: int = 0):
+        # Check if already visited
+        if name in visited:
+            source = visited[name]
+            print_package(name, depth, f"({source}, seen)")
+            return
+
+        # Check depth limit
+        if max_depth is not None and depth >= max_depth:
+            source = "nixpkgs" if lookup_in_nixpkgs(name) else "pypi"
+            print_package(name, depth, f"({source}, max depth)")
+            return
+
+        # Check if available in nixpkgs
+        if lookup_in_nixpkgs(name):
+            visited[name] = "nixpkgs"
+            print_package(name, depth, "(nixpkgs)")
+            # Don't recurse - assume nixpkgs handles dependencies
+            return
+
+        # Not in nixpkgs, fetch from PyPI
+        try:
+            pkg_ver = package_version if depth == 0 else None
+            pkg = pypi.get_pypi_metadata(name, pkg_ver)
+            visited[name] = "pypi"
+            print_package(name, depth, "(pypi)")
+
+            # Recurse into dependencies
+            for req in pkg.info.iterate_requirements(env, include_extras="none"):
+                traverse(req.name, depth + 1)
+        except Exception as e:
+            if depth == 0:
+                import httpx
+                if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 404:
+                    click.echo(f"Error: Package '{name}' not found on PyPI", err=True)
+                else:
+                    click.echo(f"Error: {e}", err=True)
+                sys.exit(1)
+            else:
+                # For nested deps, just mark as unavailable
+                print_package(name, depth, "(not found)")
+
+    traverse(package)
 
 
 @nixpkgs_group.command("python-packages")
