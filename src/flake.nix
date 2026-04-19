@@ -16,8 +16,9 @@
           httpx
           click
           msgspec
-          platformdirs
-          packaging
+          platformdirs  # multi-platform analogues for XDG_USER_CACHE etc
+          packaging     # PEP-508 parsing and evalution
+          ijson         # streaming json parser
           pytest
         ]);
 

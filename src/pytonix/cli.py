@@ -137,5 +137,31 @@ def fetch_index_cli_cmd(flake_ref: str):
         sys.exit(1)
 
 
+@nixpkgs_group.command("python-packages")
+@click.argument("flake_ref")
+@click.option("--version", "-v", help="Python version (e.g., 3.13, 3.11, 3.9)")
+def python_packages_cli_cmd(flake_ref: str, version: str | None):
+    """List Python packages available in nixpkgs.
+
+    Example: ptx nixpkgs python-packages github:NixOS/nixpkgs/nixos-unstable -v 3.11
+    """
+    try:
+        if version:
+            # Convert dotted version to nix version
+            nix_ver = nixpkgs.dotted_version_to_nix(version)
+            packages = nixpkgs.get_python_packages_index(flake_ref, nix_ver)
+            click.echo(f"Python {version} packages ({len(packages)} total):")
+            for pkg in sorted(packages):
+                click.echo(f"  {pkg}")
+        else:
+            index = nixpkgs.get_python_packages_index(flake_ref)
+            for nix_ver in sorted(index.keys()):
+                dotted_ver = nixpkgs.nix_version_to_dotted(nix_ver)
+                click.echo(f"Python {dotted_ver}: {len(index[nix_ver])} packages")
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     main()
