@@ -18,7 +18,7 @@ def test_gemma_with_system_prompt_fails():
 
     error = exc_info.value
     assert error.provider_name == "Google AI Studio"
-    assert "Developer instruction" in error.provider_error
+    assert error.provider_error and "Developer instruction" in error.provider_error
     print(f"\nError message: {error}")
 
 

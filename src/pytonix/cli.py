@@ -10,11 +10,12 @@ from pytonix.infra.openrouter import DEFAULT_MODEL
 
 class OrderedGroup(click.Group):
     """Click group that preserves command order."""
+
     def list_commands(self, ctx):
         return list(self.commands)
 
 
-@click.group(cls=OrderedGroup)
+@click.group(cls=OrderedGroup, context_settings={"show_default": True})
 def main():
     """ptx - Experimental harness for nixifying Python packages."""
     pass
@@ -39,7 +40,12 @@ def llm_group():
 
 
 @llm_group.command("one-shot")
-@click.option("--model", "-m", default=DEFAULT_MODEL, help=f"Model to use (default: {DEFAULT_MODEL})")
+@click.option(
+    "--model",
+    "-m",
+    default=DEFAULT_MODEL,
+    help=f"Model to use (default: {DEFAULT_MODEL})",
+)
 def one_shot_cli_cmd(model: str):
     """Run a one-shot completion.
 
@@ -52,7 +58,9 @@ def one_shot_cli_cmd(model: str):
         sys.exit(1)
 
     try:
-        response_content = openrouter.complete_chat(user_prompt=prompt_text, model=model)
+        response_content = openrouter.complete_chat(
+            user_prompt=prompt_text, model=model
+        )
         click.echo(response_content)
     except openrouter.OpenRouterError as e:
         click.echo(str(e), err=True)
@@ -75,7 +83,9 @@ def list_models_cli_cmd():
 @pypi_group.command("show-deps")
 @click.argument("package")
 @click.option("--version", "-v", default=None, help="Package version (default: latest)")
-@click.option("--max-depth", "-d", default=None, type=int, help="Maximum recursion depth")
+@click.option(
+    "--max-depth", "-d", default=None, type=int, help="Maximum recursion depth"
+)
 def deps_cli_cmd(package: str, version: str | None, max_depth: int | None):
     """Print dependency tree for a PyPI package (depth-first traversal).
 
@@ -92,11 +102,15 @@ def deps_cli_cmd(package: str, version: str | None, max_depth: int | None):
 
     def handle_fetch_error(name: str, error: Exception):
         import httpx
+
         if isinstance(error, httpx.HTTPStatusError):
             if error.response.status_code == 404:
                 click.echo(f"Error: Package '{name}' not found on PyPI", err=True)
             else:
-                click.echo(f"Error: HTTP {error.response.status_code} when fetching '{name}'", err=True)
+                click.echo(
+                    f"Error: HTTP {error.response.status_code} when fetching '{name}'",
+                    err=True,
+                )
         else:
             click.echo(f"Error: {error}", err=True)
         sys.exit(1)
@@ -145,10 +159,21 @@ def fetch_index_cli_cmd(flake_ref: str):
 
 @pypi_group.command("nixify")
 @click.argument("package")
-@click.option("--python-version", "-p", required=True, help="Python version (e.g., 3.13, 3.11)")
-@click.option("--nixpkgs-ref", "-n", default=None, help="Nixpkgs flake reference (default: $PTX_DEFAULT_NIXPKGS_REF)")
-@click.option("--package-version", "-v", default=None, help="Package version (default: latest)")
-@click.option("--max-depth", "-d", default=None, type=int, help="Maximum recursion depth")
+@click.option(
+    "--python-version", "-p", required=True, help="Python version (e.g., 3.13, 3.11)"
+)
+@click.option(
+    "--nixpkgs-ref",
+    "-n",
+    default=None,
+    help="Nixpkgs flake reference (default: $PTX_DEFAULT_NIXPKGS_REF)",
+)
+@click.option(
+    "--package-version", "-v", default=None, help="Package version (default: latest)"
+)
+@click.option(
+    "--max-depth", "-d", default=None, type=int, help="Maximum recursion depth"
+)
 def nixify_cli_cmd(
     package: str,
     python_version: str,
@@ -167,9 +192,12 @@ def nixify_cli_cmd(
     visited = {}  # name -> source ("nixpkgs" or "pypi")
 
     # Convert Python version and get nixpkgs index
-    nix_ver = nixpkgs.dotted_version_to_nix(python_version)
+    python_version_nix = nixpkgs.dotted_version_to_nix(python_version)
     try:
-        nix_packages = nixpkgs.get_python_packages_index(nixpkgs_ref, nix_ver)
+        nix_packages = nixpkgs.get_python_package_names(
+            nixpkgs_ref,
+            python_version_nix,
+        )
     except Exception as e:
         click.echo(f"Error loading nixpkgs index: {e}", err=True)
         sys.exit(1)
@@ -227,7 +255,11 @@ def nixify_cli_cmd(
         except Exception as e:
             if depth == 0:
                 import httpx
-                if isinstance(e, httpx.HTTPStatusError) and e.response.status_code == 404:
+
+                if (
+                    isinstance(e, httpx.HTTPStatusError)
+                    and e.response.status_code == 404
+                ):
                     click.echo(f"Error: Package '{name}' not found on PyPI", err=True)
                 else:
                     click.echo(f"Error: {e}", err=True)
@@ -240,26 +272,25 @@ def nixify_cli_cmd(
 
 
 @nixpkgs_group.command("python-packages")
-@click.argument("flake_ref")
-@click.option("--version", "-v", help="Python version (e.g., 3.13, 3.11, 3.9)")
-def python_packages_cli_cmd(flake_ref: str, version: str | None):
+@click.option(
+    "--nixpkgs-ref",
+    "-r",
+    default=config.get_default_nixpkgs_ref(),
+    help=f"nixpkgs reference",
+)
+@click.option("--version", "-v", default="3.13", help="Python version")
+def python_packages_cli_cmd(nixpkgs_ref: str, version: str | None):
     """List Python packages available in nixpkgs.
 
     Example: ptx nixpkgs python-packages github:NixOS/nixpkgs/nixos-unstable -v 3.11
     """
     try:
-        if version:
-            # Convert dotted version to nix version
-            nix_ver = nixpkgs.dotted_version_to_nix(version)
-            packages = nixpkgs.get_python_packages_index(flake_ref, nix_ver)
-            click.echo(f"Python {version} packages ({len(packages)} total):")
-            for pkg in sorted(packages):
-                click.echo(f"  {pkg}")
-        else:
-            index = nixpkgs.get_python_packages_index(flake_ref)
-            for nix_ver in sorted(index.keys()):
-                dotted_ver = nixpkgs.nix_version_to_dotted(nix_ver)
-                click.echo(f"Python {dotted_ver}: {len(index[nix_ver])} packages")
+        # Convert dotted version to nix version
+        nix_ver = nixpkgs.dotted_version_to_nix(version)
+        packages = nixpkgs.get_python_package_names(nixpkgs_ref, nix_ver)
+        click.echo(f"Python {version} packages ({len(packages)} total):")
+        for pkg in sorted(packages):
+            click.echo(f"  {pkg}")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)

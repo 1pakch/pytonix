@@ -1,3 +1,4 @@
+from collections import defaultdict
 import gzip
 import ijson
 import json
@@ -13,7 +14,7 @@ from pytonix.infra.config import get_packages_info_cache_dir
 
 
 # Regex to match python package keys like "python313Packages.requests"
-PYTHON_PACKAGE_RE = re.compile(r'^python(\d+)Packages\.(.+)$')
+PYTHON_PACKAGE_RE = re.compile(r"^python(\d+)Packages\.(.+)$")
 
 
 @cache
@@ -103,7 +104,9 @@ def get_packages_info(ref: PrefetchedNixpkgsRef | NixpkgsRefStr) -> Path:
     return cache_file
 
 
-def get_and_index_nixpkgs(ref: NixpkgsRefStr | PrefetchedNixpkgsRef) -> tuple[PrefetchedNixpkgsRef, Path]:
+def get_and_index_nixpkgs(
+    ref: NixpkgsRefStr | PrefetchedNixpkgsRef,
+) -> tuple[PrefetchedNixpkgsRef, Path]:
     """
     Get and index nixpkgs packages.
 
@@ -144,82 +147,52 @@ def _parse_python_packages(packages_info_path: Path, cache_dir: Path):
     Parse packages-info.json.gz and extract Python package names by version.
     Writes separate files for each Python version (e.g., python313.txt, python39.txt).
     """
-    version_files = {}
+    packages: dict[str, dict[str, dict]] = defaultdict(dict)  # python version
 
     try:
         with gzip.open(packages_info_path, "rb") as f:
-            parser = ijson.kvitems(f, "packages")
-
-            for key, value in parser:
+            # "packages" is a JSON object where the keys are package names
+            # which are like "python313Packages.pytest" and the values are
+            # objects with more metadata including, for instance, "pname"
+            # (which are closer to pypi package names)
+            for key, value in ijson.kvitems(f, "packages"):
                 match = PYTHON_PACKAGE_RE.match(key)
                 if match:
-                    version = match.group(1)  # "313"
-                    package_name = match.group(2)  # "requests"
-
-                    if version not in version_files:
-                        file_path = cache_dir / f"python{version}.txt"
-                        version_files[version] = open(file_path, "w")
-
-                    version_files[version].write(package_name + "\n")
+                    python_version_nix = match.group(1)  # "313"
+                    stripped_name = match.group(2)  # "requests"
+                    pname: str = value["pname"]
+                    version: str = value["version"]
+                    # we could extract more attributes here e.g. "position" that
+                    # points to the definition in the nixpkgs source tree
+                    packages[python_version_nix][pname] = {"version": version}
     finally:
-        for f in version_files.values():
-            f.close()
+        for python_version_nix, this_version_packages in packages.items():
+            file_path = cache_dir / f"python{python_version_nix}.txt"
+            with file_path.open("w") as f:
+                json.dump(this_version_packages, f, indent=2)
 
 
-def get_python_packages_index(
+def get_python_package_names(
     ref: PrefetchedNixpkgsRef | NixpkgsRefStr,
-    python_version: str | None = None,
-) -> dict[str, set[str]] | set[str]:
+    python_version_nix: str,
+) -> set[str]:
     """
-    Get index of Python packages for a nixpkgs revision.
+    Get names of Python packages for a nixpkgs revision.
 
     Args:
         ref: Nixpkgs flake reference
         python_version: Nix version like "313", "39", "311" (optional)
 
     Returns:
-        If python_version is None: dict mapping all versions to package name sets
-        If python_version specified: set of package names for that version
+        A set of package names for that version
     """
     # Get and index nixpkgs
     prefetched, cache_dir = get_and_index_nixpkgs(ref)
 
-    # If specific version requested, read that file
-    if python_version is not None:
-        version_file = cache_dir / f"python{python_version}.txt"
-        if not version_file.exists():
-            return set()
-        with open(version_file) as f:
-            return {line.strip() for line in f if line.strip()}
-
-    # Otherwise build full index from all files
-    index = {}
-    for file_path in cache_dir.glob("python*.txt"):
-        version = file_path.stem.replace("python", "")
-        with open(file_path) as f:
-            index[version] = {line.strip() for line in f if line.strip()}
-
-    return index
+    file_path = cache_dir / f"python{python_version_nix}.txt"
+    with file_path.open() as f:
+        return set(json.load(f).keys())  # pyright: ignore[reportReturnType]
 
 
-def lookup_python_package(
-    ref: PrefetchedNixpkgsRef | NixpkgsRefStr,
-    python_version: str,
-    pname: str,
-) -> bool:
-    """
-    Check if a Python package exists in nixpkgs for a specific Python version.
-
-    Args:
-        ref: Nixpkgs flake reference
-        python_version: Python version like "39", "310", "311"
-        pname: Package name to look up
-
-    Returns:
-        True if package exists, False otherwise
-    """
-    packages = get_python_packages_index(ref, python_version)
-    return pname in packages
-
-
-# TODO: add functionality to add, remove and view roots associated to nxipkg rvisions
+# TODO: allow listing the python versions exposed by nixpkgs
+# TODO: add functionality to add, remove and view roots associated to nixpkg revisions

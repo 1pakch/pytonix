@@ -14,7 +14,7 @@ class BuildResult(msgspec.Struct, frozen=True):
     stderr_path: Path
 
     def success(self) -> bool:
-        return 0 == exit_code
+        return 0 == self.exit_code
 
 
 def execute_command(
@@ -91,11 +91,10 @@ def run_nix_build(
     """
     stdout_path, stderr_path = prepare_log_directory(log_dir, target_name)
     cmd = build_nix_command(flake_ref, extra_args)
-    exit_code = execute_command(cmd, flake_path, stdout_path, stderr_path)
+    exit_code = execute_command(cmd, Path(flake_dir), stdout_path, stderr_path)
 
     return BuildResult(
         exit_code=exit_code,
         stdout_path=stdout_path,
         stderr_path=stderr_path,
-        success=exit_code == 0,
     )
